@@ -18,5 +18,8 @@ $(STEPS): $(EXEC_DIR)/%: %.rs
 step0_repl.rs:
 	cargo build --release --bin step0_repl
 
+step1_read_print.rs:
+	cargo build --release --bin step1_read_print
+
 clean:
 	cargo clean

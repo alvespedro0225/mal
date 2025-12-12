@@ -4,12 +4,21 @@ pub struct Reader<'a> {
 }
 
 impl<'a> Reader<'a> {
-    pub fn peek(&self) {
-        todo!()
+    pub fn peek(&self) -> Option<&str> {
+        if self.tokens.len() > self.pos {
+            Some(self.tokens[self.pos])
+        } else {
+            None
+        }
     }
 
-    pub fn next(&mut self) {
-        todo!()
+    pub fn next(&mut self) -> Option<&str> {
+        if self.tokens.len() > self.pos {
+            self.pos += 1;
+            Some(self.tokens[self.pos - 1])
+        } else {
+            None
+        }
     }
 
     pub fn new(tokens: Box<[&str]>) -> Reader<'_> {
