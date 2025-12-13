@@ -21,5 +21,8 @@ step0_repl.rs:
 step1_read_print.rs:
 	cargo build --release --bin step1_read_print
 
+step2_eval.rs:
+	cargo build --release --bin step2_eval
+
 clean:
 	cargo clean

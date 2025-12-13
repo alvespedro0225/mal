@@ -1,32 +1,43 @@
-use regex::Regex;
+use crate::parser::MalCollection;
+use crate::parser::ReplError;
 use std::sync::LazyLock;
 
-use crate::readline::errors::ReplError;
-use crate::readline::reader::Reader;
-use crate::readline::types::{MalCollection, MalType};
+use regex::Regex;
 
-pub mod errors;
-mod reader;
-mod types;
+use crate::parser::types::MalType;
 
-fn read(arg: &str) -> Result<MalType, ReplError> {
-    read_string(arg)
+pub struct Reader<'a> {
+    tokens: Box<[&'a str]>,
+    pos: usize,
 }
 
-fn eval(arg: MalType) -> MalType {
-    arg
+impl<'a> Reader<'a> {
+    pub fn peek(&self) -> Option<&str> {
+        if self.tokens.len() > self.pos {
+            Some(self.tokens[self.pos])
+        } else {
+            None
+        }
+    }
+
+    pub fn next(&mut self) -> Option<&str> {
+        if self.tokens.len() > self.pos {
+            self.pos += 1;
+            Some(self.tokens[self.pos - 1])
+        } else {
+            None
+        }
+    }
+
+    pub fn new(tokens: Box<[&str]>) -> Reader<'_> {
+        Reader { tokens, pos: 0 }
+    }
 }
 
-fn print(arg: MalType) -> Box<str> {
-    let mut ret = print_str(arg);
-    ret.push('\n');
-    ret.into()
-}
-
-pub fn rep(arg: &str) -> Result<Box<str>, ReplError> {
-    let res = read(arg);
-    let res = eval(res?);
-    Ok(print(res))
+pub fn read_string(string: &str) -> Result<MalType, ReplError> {
+    let tokens = tokenize(string);
+    let mut reader = Reader::new(tokens);
+    read_form(&mut reader)
 }
 
 fn tokenize(string: &str) -> Box<[&str]> {
@@ -47,12 +58,6 @@ fn tokenize(string: &str) -> Box<[&str]> {
     }
 
     matches.into()
-}
-
-pub fn read_string(string: &str) -> Result<MalType, ReplError> {
-    let tokens = tokenize(string);
-    let mut reader = Reader::new(tokens);
-    read_form(&mut reader)
 }
 
 fn read_form(reader: &mut Reader) -> Result<MalType, ReplError> {
@@ -93,12 +98,12 @@ fn read_form(reader: &mut Reader) -> Result<MalType, ReplError> {
             let _ = reader.next();
             let first = match read_form(reader) {
                 Ok(first) => first,
-                Err(ReplError::Eof) => return Err(ReplError::Meta),
+                Err(ReplError::Eof) => return Err(ReplError::Arguments("^".into())),
                 e => return e,
             };
             let second = match read_form(reader) {
                 Ok(first) => first,
-                Err(ReplError::Eof) => return Err(ReplError::Meta),
+                Err(ReplError::Eof) => return Err(ReplError::Arguments("^".into())),
                 e => return e,
             };
             Ok(MalType::List {
@@ -136,7 +141,7 @@ fn read_list(reader: &mut Reader, mal_type: MalCollection) -> Result<MalType, Re
     let collection = match mal_type {
         MalCollection::List => MalType::List { tokens },
         MalCollection::Vector => MalType::Vector { tokens },
-        MalCollection::HashMap => MalType::HashMap { pairs: tokens },
+        MalCollection::HashMap => MalType::HashMap { tokens },
     };
 
     Ok(collection)
@@ -144,37 +149,15 @@ fn read_list(reader: &mut Reader, mal_type: MalCollection) -> Result<MalType, Re
 
 fn read_atom(reader: &mut Reader) -> MalType {
     let current = reader.next().unwrap();
+
     if let Ok(num) = current.parse::<i128>() {
-        MalType::Number(num)
-    } else {
-        MalType::Symbol(current.into())
-    }
-}
-
-fn print_str(token: MalType) -> String {
-    fn make_collection(tokens: Vec<MalType>, start: char, end: char) -> String {
-        let mut str = Vec::new();
-        for tkn in tokens {
-            let stringified = print_str(tkn);
-            if !stringified.is_empty() {
-                str.push(stringified);
-            }
-        }
-        let str = str.join(" ");
-        let mut ret = String::with_capacity(str.len() + 2);
-        ret.push(start);
-        ret.push_str(&str);
-        ret.push(end);
-        ret
+        return MalType::Number(num);
     }
 
-    match token {
-        MalType::List { tokens } => make_collection(tokens, '(', ')'),
-        MalType::Number(num) => num.to_string(),
-        MalType::Symbol(symbol) => symbol.into(),
-        MalType::Vector { tokens } => make_collection(tokens, '[', ']'),
-        MalType::Bool(_) => todo!(),
-        MalType::Nil => todo!(),
-        MalType::HashMap { pairs } => make_collection(pairs, '{', '}'),
+    match current {
+        "false" => MalType::Bool(false),
+        "true" => MalType::Bool(true),
+        "nil" => MalType::Nil,
+        other => MalType::Symbol(other.into()),
     }
 }
