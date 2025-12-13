@@ -32,9 +32,11 @@ fn main() {
                         let _ = stdout.flush();
                     }
                     ReplError::Eof => {
-                        let _ = stdout.write_all(b"EOF\n");
-                        let _ = stdout.flush();
                         break;
+                    }
+                    ReplError::Meta => {
+                        let _ = stdout.write_all(b"missing arguments for ^\n");
+                        let _ = stdout.flush();
                     }
                 },
             }

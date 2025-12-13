@@ -10,7 +10,7 @@ fn main() {
         let _ = stdout.flush();
         if let Ok(read) = stdin.read_line(&mut buffer) {
             if read == 0 {
-                let _ = stdout.write_all(b"Found EOF. Terminating.");
+                let _ = stdout.write_all(b"Found EOF. Terminating.\n");
                 break;
             }
 

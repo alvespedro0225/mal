@@ -7,4 +7,7 @@ pub enum ReplError {
 
     #[error("Found EOF")]
     Eof,
+
+    #[error("Missing parameters for ^")]
+    Meta,
 }
