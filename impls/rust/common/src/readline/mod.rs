@@ -5,7 +5,7 @@ use crate::readline::errors::ReplError;
 use crate::readline::reader::Reader;
 use crate::readline::types::MalType;
 
-mod errors;
+pub mod errors;
 mod reader;
 mod types;
 
