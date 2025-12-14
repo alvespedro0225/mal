@@ -16,7 +16,7 @@ impl Env {
         map.insert("*".into(), MalType::Function(mult));
         map.insert("/".into(), MalType::Function(div));
         #[cfg(debug_assertions)]
-        map.insert("DEBUG".into(), MalType::Bool(true));
+        map.insert("DEBUG-EVAL".into(), MalType::Bool(true));
         Env {
             envs: RefCell::new(vec![map]),
         }

@@ -24,11 +24,11 @@ fn read(arg: &str) -> Result<MalType, ReplError> {
 
 fn eval(arg: MalType) -> Result<MalType, ReplError> {
     ENV.with(|env| {
-        if let Some(debug) = env.get("DEBUG")
+        if let Some(debug) = env.get("DEBUG-EVAL")
             && !matches!(debug, MalType::Nil)
             && !matches!(debug, MalType::Bool(false))
         {
-            println!("{}", print_str(arg.clone()))
+            println!("EVAL: {}", print_str(arg.clone()))
         }
 
         match arg {
@@ -65,10 +65,10 @@ fn eval(arg: MalType) -> Result<MalType, ReplError> {
                             env.new_env();
                             let mut pairs = {
                                 match mem::take(&mut tokens[1]) {
-                                    MalType::List { tokens } => tokens,
+                                    MalType::List { tokens } | MalType::Vector { tokens } => tokens,
                                     other => {
                                         return Err(ReplError::Type {
-                                            expected: "list".into(),
+                                            expected: "list or vector".into(),
                                             received: other.to_string().into(),
                                         });
                                     }
@@ -172,13 +172,13 @@ fn print_str(token: MalType) -> String {
     }
 
     match token {
-        MalType::List { tokens } => make_collection(tokens, '(', ')'),
+        MalType::Symbol(name) | MalType::String(name) => name.into(),
         MalType::Number(num) => num.to_string(),
-        MalType::Symbol(symbol) => symbol.into(),
-        MalType::Vector { tokens } => make_collection(tokens, '[', ']'),
         MalType::Bool(boolean) => boolean.to_string(),
         MalType::Nil => "nil".to_string(),
+        MalType::List { tokens } => make_collection(tokens, '(', ')'),
+        MalType::Vector { tokens } => make_collection(tokens, '[', ']'),
         MalType::HashMap { tokens } => make_collection(tokens, '{', '}'),
-        MalType::Function(_) => panic!(),
+        MalType::Function(_) => panic!("Function is not a valid repl print type"),
     }
 }

@@ -4,17 +4,18 @@ use crate::parser::errors::ReplError;
 
 #[derive(Clone, Debug, Default)]
 pub enum MalType {
-    List {
-        tokens: Vec<MalType>,
-    },
+    String(Box<str>),
     Number(i128),
     Symbol(Box<str>),
-    Vector {
-        tokens: Vec<MalType>,
-    },
     Bool(bool),
     #[default]
     Nil,
+    List {
+        tokens: Vec<MalType>,
+    },
+    Vector {
+        tokens: Vec<MalType>,
+    },
     HashMap {
         tokens: Vec<MalType>,
     },
@@ -31,12 +32,13 @@ pub enum MalCollection {
 impl Display for MalType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let variant = match &self {
-            Self::List { tokens: _ } => "list",
+            Self::String(_) => "string",
             Self::Number(_) => "number",
             Self::Symbol(_) => "symbol",
-            Self::Vector { tokens: _ } => "vector",
             Self::Bool(_) => "bool",
             Self::Nil => "nil",
+            Self::List { tokens: _ } => "list",
+            Self::Vector { tokens: _ } => "vector",
             Self::HashMap { tokens: _ } => "hashmap",
             Self::Function(_) => "function",
         };

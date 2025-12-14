@@ -154,6 +154,13 @@ fn read_atom(reader: &mut Reader) -> MalType {
         return MalType::Number(num);
     }
 
+    if current.starts_with('\"') {
+        let current = current.replace("\\\"", "\"");
+        let current = current.replace("\\n", "\n");
+        let current = current.replace("\\\\", "\\");
+        return MalType::String(current.into());
+    }
+
     match current {
         "false" => MalType::Bool(false),
         "true" => MalType::Bool(true),
