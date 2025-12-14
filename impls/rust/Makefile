@@ -24,5 +24,8 @@ step1_read_print.rs:
 step2_eval.rs:
 	cargo build --release --bin step2_eval
 
+step3_env.rs:
+	cargo build --release --bin step3_env
+
 clean:
 	cargo clean

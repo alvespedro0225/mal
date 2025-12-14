@@ -27,7 +27,7 @@ fn main() {
                     let _ = stdout.flush();
                 }
                 Err(e) => match e {
-                    ReplError::Unclosed => {
+                    ReplError::Unclosed(_) => {
                         let _ = stdout.write_all(b"unbalanced\n");
                         let _ = stdout.flush();
                     }

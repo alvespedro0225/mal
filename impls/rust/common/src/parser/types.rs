@@ -1,14 +1,24 @@
 use std::fmt::Display;
 
-#[derive(Clone, Debug)]
+use crate::parser::errors::ReplError;
+
+#[derive(Clone, Debug, Default)]
 pub enum MalType {
-    List { tokens: Vec<MalType> },
+    List {
+        tokens: Vec<MalType>,
+    },
     Number(i128),
     Symbol(Box<str>),
-    Vector { tokens: Vec<MalType> },
+    Vector {
+        tokens: Vec<MalType>,
+    },
     Bool(bool),
+    #[default]
     Nil,
-    HashMap { tokens: Vec<MalType> },
+    HashMap {
+        tokens: Vec<MalType>,
+    },
+    Function(fn(MalType) -> Result<MalType, ReplError>),
 }
 
 #[derive(Clone, Debug)]
@@ -28,6 +38,7 @@ impl Display for MalType {
             Self::Bool(_) => "bool",
             Self::Nil => "nil",
             Self::HashMap { tokens: _ } => "hashmap",
+            Self::Function(_) => "function",
         };
 
         write!(f, "{variant}")

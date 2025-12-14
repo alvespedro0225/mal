@@ -79,7 +79,7 @@ fn read_form(reader: &mut Reader) -> Result<MalType, ReplError> {
         '{' => Ok(read_list(reader, MalCollection::HashMap)?),
         '\"' => {
             if !reader.peek().unwrap().ends_with('\"') {
-                return Err(ReplError::Unclosed);
+                return Err(ReplError::Unclosed('\"'));
             }
             Ok(read_atom(reader))
         }
@@ -126,7 +126,7 @@ fn read_list(reader: &mut Reader, mal_type: MalCollection) -> Result<MalType, Re
     loop {
         let cur = match reader.peek() {
             Some(token) => token.to_owned(),
-            None => return Err(ReplError::Unclosed),
+            None => return Err(ReplError::Unclosed(end.chars().next().unwrap())),
         };
 
         if cur == end {

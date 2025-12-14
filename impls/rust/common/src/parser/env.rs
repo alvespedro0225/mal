@@ -1,10 +1,52 @@
 use std::{cell::RefCell, collections::HashMap};
 
-use crate::parser::{self, errors::ReplError, types::MalType};
-type Symbols = RefCell<HashMap<Box<str>, fn(MalType) -> Result<MalType, ReplError>>>;
+use crate::parser::{self, ENV, errors::ReplError, types::MalType};
+pub type Symbols = HashMap<Box<str>, MalType>;
 
-thread_local! {
-    pub static SYMBOL_MAP: Symbols = RefCell::new(HashMap::new());
+#[derive(Debug)]
+pub struct Env {
+    envs: RefCell<Vec<Symbols>>,
+}
+
+impl Env {
+    pub fn new() -> Self {
+        let mut map: Symbols = HashMap::new();
+        map.insert("+".into(), MalType::Function(add));
+        map.insert("-".into(), MalType::Function(sub));
+        map.insert("*".into(), MalType::Function(mult));
+        map.insert("/".into(), MalType::Function(div));
+        #[cfg(debug_assertions)]
+        map.insert("DEBUG".into(), MalType::Bool(true));
+        Env {
+            envs: RefCell::new(vec![map]),
+        }
+    }
+
+    pub fn set(&self, key: Box<str>, value: MalType) {
+        self.envs
+            .borrow_mut()
+            .last_mut()
+            .unwrap()
+            .insert(key, value);
+    }
+
+    pub fn get(&self, key: &str) -> Option<MalType> {
+        for map in self.envs.borrow().iter().rev() {
+            let value = map.get(key);
+            if value.is_some() {
+                return value.cloned();
+            }
+        }
+        None
+    }
+
+    pub fn new_env(&self) {
+        self.envs.borrow_mut().push(HashMap::new())
+    }
+
+    pub fn pop_env(&self) {
+        self.envs.borrow_mut().pop();
+    }
 }
 
 fn add(args: MalType) -> Result<MalType, ReplError> {
@@ -21,6 +63,21 @@ fn add(args: MalType) -> Result<MalType, ReplError> {
                     let res = parser::eval(MalType::List { tokens })?;
                     if let MalType::Number(num) = res {
                         accumulator += num;
+                    }
+                }
+                MalType::Symbol(symbol) => {
+                    if let Some(value) = get_from_env(&symbol) {
+                        match value {
+                            MalType::Number(num) => accumulator += num,
+                            other => {
+                                return Err(ReplError::Type {
+                                    expected: "number".into(),
+                                    received: other.to_string().into(),
+                                });
+                            }
+                        }
+                    } else {
+                        return Err(ReplError::UnknownSymbol(symbol));
                     }
                 }
                 other => {
@@ -60,6 +117,23 @@ fn sub(args: MalType) -> Result<MalType, ReplError> {
                         accumulator = accumulator.map_or(Some(num), |a| Some(a - num))
                     }
                 }
+                MalType::Symbol(symbol) => {
+                    if let Some(value) = get_from_env(&symbol) {
+                        match value {
+                            MalType::Number(num) => {
+                                accumulator = accumulator.map_or(Some(num), |a| Some(a - num))
+                            }
+                            other => {
+                                return Err(ReplError::Type {
+                                    expected: "number".into(),
+                                    received: other.to_string().into(),
+                                });
+                            }
+                        }
+                    } else {
+                        return Err(ReplError::UnknownSymbol(symbol));
+                    }
+                }
                 other => {
                     return Err(ReplError::Type {
                         expected: "list or number".into(),
@@ -96,6 +170,21 @@ fn mult(args: MalType) -> Result<MalType, ReplError> {
                     let res = parser::eval(MalType::List { tokens })?;
                     if let MalType::Number(num) = res {
                         accumulator *= num;
+                    }
+                }
+                MalType::Symbol(symbol) => {
+                    if let Some(value) = get_from_env(&symbol) {
+                        match value {
+                            MalType::Number(num) => accumulator *= num,
+                            other => {
+                                return Err(ReplError::Type {
+                                    expected: "number".into(),
+                                    received: other.to_string().into(),
+                                });
+                            }
+                        }
+                    } else {
+                        return Err(ReplError::UnknownSymbol(symbol));
                     }
                 }
                 other => {
@@ -143,6 +232,23 @@ fn div(args: MalType) -> Result<MalType, ReplError> {
                         }
                     }
                 }
+                MalType::Symbol(symbol) => {
+                    if let Some(value) = get_from_env(&symbol) {
+                        match value {
+                            MalType::Number(num) => {
+                                accumulator = accumulator.map_or(Some(num), |a| Some(a / num))
+                            }
+                            other => {
+                                return Err(ReplError::Type {
+                                    expected: "number".into(),
+                                    received: other.to_string().into(),
+                                });
+                            }
+                        }
+                    } else {
+                        return Err(ReplError::UnknownSymbol(symbol));
+                    }
+                }
                 other => {
                     return Err(ReplError::Type {
                         expected: "list or number".into(),
@@ -176,11 +282,6 @@ fn div(args: MalType) -> Result<MalType, ReplError> {
     }
 }
 
-pub fn init_symbols() {
-    SYMBOL_MAP.with_borrow_mut(|map| {
-        map.insert("+".into(), add);
-        map.insert("-".into(), sub);
-        map.insert("*".into(), mult);
-        map.insert("/".into(), div)
-    });
+fn get_from_env(key: &str) -> Option<MalType> {
+    ENV.with(|env| env.get(key))
 }
